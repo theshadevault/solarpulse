@@ -1,0 +1,9 @@
+data/raw
+data/cache
+data/dataset.pkl
+data/server.log
+data/revisions.json
+__pycache__
+**/__pycache__
+.env*
+.vercel

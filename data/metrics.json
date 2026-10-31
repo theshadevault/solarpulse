@@ -1,0 +1,623 @@
+{
+  "real": {
+    "plants": [
+      "srco",
+      "fsa"
+    ],
+    "test_days": 174,
+    "windows": {
+      "srco": [
+        "2025-02-17",
+        "2025-04-29"
+      ],
+      "fsa": [
+        "2025-09-18",
+        "2025-12-31"
+      ]
+    },
+    "deterministic": {
+      "Day-ahead persistence": {
+        "nMAE": 17.776886467263196,
+        "nRMSE": 27.653115112666242,
+        "bias": -0.09152548195362352,
+        "skill_vs_persistence": 0.0
+      },
+      "Physics twin on NWP": {
+        "nMAE": 14.067460433385797,
+        "nRMSE": 20.246968463838524,
+        "bias": 7.490690213592019,
+        "skill_vs_persistence": 26.78232314389566
+      },
+      "Hybrid P50 (twin + ML residual)": {
+        "nMAE": 10.112317484163592,
+        "nRMSE": 14.852883602789943,
+        "bias": 1.3400740836776432,
+        "skill_vs_persistence": 46.288569868981156
+      }
+    },
+    "intraday": {
+      "15 min": {
+        "Smart persistence": {
+          "nMAE": 5.172174295984198,
+          "nRMSE": 10.349896877629593,
+          "bias": -1.2356567975755326
+        },
+        "Hybrid (no SCADA feedback)": {
+          "nMAE": 10.551895407744583,
+          "nRMSE": 15.23310324738652,
+          "bias": 1.3901061816019407
+        },
+        "Hybrid + Kalman": {
+          "nMAE": 6.255623480753092,
+          "nRMSE": 10.136564761949728,
+          "bias": -0.11113949596081327
+        },
+        "Horizon-adaptive blend": {
+          "nMAE": 5.048411555373165,
+          "nRMSE": 9.638875708227447,
+          "bias": -0.9146667732428811
+        },
+        "persistence_weight": 0.7145530585685655,
+        "skill_vs_persistence": 6.869838200407163
+      },
+      "60 min": {
+        "Smart persistence": {
+          "nMAE": 10.32224449982691,
+          "nRMSE": 17.372093657308753,
+          "bias": -2.7760683652893277
+        },
+        "Hybrid (no SCADA feedback)": {
+          "nMAE": 10.9684378576108,
+          "nRMSE": 15.669975504967667,
+          "bias": 1.384179545852456
+        },
+        "Hybrid + Kalman": {
+          "nMAE": 9.101464167880158,
+          "nRMSE": 13.716523203909967,
+          "bias": 0.1874907104122077
+        },
+        "Horizon-adaptive blend": {
+          "nMAE": 8.695127975475177,
+          "nRMSE": 13.45113297628267,
+          "bias": -0.5167532711844304
+        },
+        "persistence_weight": 0.23763453456041755,
+        "skill_vs_persistence": 22.570455573018766
+      },
+      "120 min": {
+        "Smart persistence": {
+          "nMAE": 14.827936673096415,
+          "nRMSE": 23.616478791668783,
+          "bias": -4.511107319442987
+        },
+        "Hybrid (no SCADA feedback)": {
+          "nMAE": 11.119918137756365,
+          "nRMSE": 15.900700105899093,
+          "bias": 1.2712519353140084
+        },
+        "Hybrid + Kalman": {
+          "nMAE": 10.347963151186242,
+          "nRMSE": 15.238315888315409,
+          "bias": 0.4671355108654256
+        },
+        "Horizon-adaptive blend": {
+          "nMAE": 10.166711006097879,
+          "nRMSE": 15.001160846409498,
+          "bias": -0.14792352319427698
+        },
+        "persistence_weight": 0.12354942396845635,
+        "skill_vs_persistence": 36.480112133814465
+      },
+      "240 min": {
+        "Smart persistence": {
+          "nMAE": 20.014214870296325,
+          "nRMSE": 30.233069953154352,
+          "bias": -6.522754848789594
+        },
+        "Hybrid (no SCADA feedback)": {
+          "nMAE": 11.053189257333864,
+          "nRMSE": 15.895826445385191,
+          "bias": 0.6125481613778943
+        },
+        "Hybrid + Kalman": {
+          "nMAE": 10.887591536036727,
+          "nRMSE": 15.850523389459973,
+          "bias": 0.25468448540218425
+        },
+        "Horizon-adaptive blend": {
+          "nMAE": 10.77178278661718,
+          "nRMSE": 15.780630666788834,
+          "bias": -0.5335433372086807
+        },
+        "persistence_weight": 0.11630171569877454,
+        "skill_vs_persistence": 47.80341298041958
+      }
+    },
+    "probabilistic": {
+      "PICP 90%": {
+        "nominal": 90,
+        "empirical": 87.72385509227615,
+        "mean_width": 38.91619890655437,
+        "by_regime": {
+          "Clear": 93.33714612525021,
+          "Broken cloud": 82.91654112684543,
+          "Overcast": 80.36072144288578
+        }
+      },
+      "PICP 80%": {
+        "nominal": 80,
+        "empirical": 80.09569377990431,
+        "mean_width": 32.091641012416034,
+        "by_regime": {
+          "Clear": 88.47583643122677,
+          "Broken cloud": 72.55197348598975,
+          "Overcast": 71.5430861723447
+        }
+      },
+      "PICP 50%": {
+        "nominal": 50,
+        "empirical": 53.09637730690362,
+        "mean_width": 18.512505441377257,
+        "by_regime": {
+          "Clear": 59.27938232770946,
+          "Broken cloud": 47.42392286833383,
+          "Overcast": 47.49498997995992
+        }
+      },
+      "mean_pinball": 2.8400429174054165,
+      "Static CQR 80% (no online adaptation)": 87.25905673274094
+    },
+    "dsm": {
+      "Schedule = physics twin": {
+        "penalty_inr": 248410.9116327304,
+        "band_compliance_pct": 52.68461927416165
+      },
+      "Schedule = P50": {
+        "penalty_inr": 112740.21119290443,
+        "band_compliance_pct": 64.53793013051546
+      },
+      "Schedule = S* (optimized)": {
+        "penalty_inr": 106436.84402583241,
+        "band_compliance_pct": 64.23244816572767
+      }
+    },
+    "sanitization": {
+      "curtailed_blocks": 0,
+      "decurtail_error_pct": null,
+      "raw_scada_error_pct": null,
+      "soiling_est_mae_pct": null,
+      "sensor_blocks_flagged": 3,
+      "derated_blocks": 97
+    },
+    "per_plant": {
+      "srco": {
+        "nMAE_P50": 12.627705361263736,
+        "nMAE_twin": 18.11345559431793,
+        "dsm_inr": {
+          "Schedule = physics twin": 227255.46095146448,
+          "Schedule = P50": 101800.23201841582,
+          "Schedule = S* (optimized)": 97919.13778139232
+        }
+      },
+      "fsa": {
+        "nMAE_P50": 8.29231586592429,
+        "nMAE_twin": 10.95099470870399,
+        "dsm_inr": {
+          "Schedule = physics twin": 21155.450681265902,
+          "Schedule = P50": 10939.979174488613,
+          "Schedule = S* (optimized)": 8517.7062444401
+        }
+      }
+    },
+    "dsm_saving_pct": 57.152911147801454
+  },
+  "sim": {
+    "plants": [
+      "bhadla",
+      "charanka",
+      "pavagada",
+      "kamuthi"
+    ],
+    "test_days": 108,
+    "windows": {
+      "bhadla": [
+        "2026-09-28",
+        "2026-10-24"
+      ],
+      "charanka": [
+        "2026-09-28",
+        "2026-10-24"
+      ],
+      "pavagada": [
+        "2026-09-28",
+        "2026-10-24"
+      ],
+      "kamuthi": [
+        "2026-09-28",
+        "2026-10-24"
+      ]
+    },
+    "deterministic": {
+      "Day-ahead persistence": {
+        "nMAE": 9.474740668524554,
+        "nRMSE": 15.782531684479626,
+        "bias": 0.4849554967687215,
+        "skill_vs_persistence": 0.0
+      },
+      "Physics twin on NWP": {
+        "nMAE": 6.9909605658166365,
+        "nRMSE": 11.087951361523222,
+        "bias": 1.4506060789105901,
+        "skill_vs_persistence": 29.745419916203964
+      },
+      "Hybrid P50 (twin + ML residual)": {
+        "nMAE": 6.523399369120381,
+        "nRMSE": 10.160774921698202,
+        "bias": -1.616091132156387,
+        "skill_vs_persistence": 35.62012023907292
+      }
+    },
+    "intraday": {
+      "15 min": {
+        "Smart persistence": {
+          "nMAE": 3.7112229835911164,
+          "nRMSE": 6.47749275706746,
+          "bias": 1.1397921150544592
+        },
+        "Hybrid (no SCADA feedback)": {
+          "nMAE": 6.800291511283185,
+          "nRMSE": 10.406277040106518,
+          "bias": -1.6091353822095293
+        },
+        "Hybrid + Kalman": {
+          "nMAE": 4.43836987705744,
+          "nRMSE": 7.382421562401503,
+          "bias": -0.2424982674310163
+        },
+        "Horizon-adaptive blend": {
+          "nMAE": 3.5832219674258696,
+          "nRMSE": 6.249445619798863,
+          "bias": 0.7452215532038925
+        },
+        "persistence_weight": 0.7145530585685655,
+        "skill_vs_persistence": 3.520608139928527
+      },
+      "60 min": {
+        "Smart persistence": {
+          "nMAE": 8.635118280227196,
+          "nRMSE": 12.801647869357534,
+          "bias": 4.51032116968118
+        },
+        "Hybrid (no SCADA feedback)": {
+          "nMAE": 7.067317222926338,
+          "nRMSE": 10.693862803758968,
+          "bias": -1.6523083006055195
+        },
+        "Hybrid + Kalman": {
+          "nMAE": 6.469270385062127,
+          "nRMSE": 10.235872360202428,
+          "bias": -0.7760421338373927
+        },
+        "Horizon-adaptive blend": {
+          "nMAE": 6.270589880236739,
+          "nRMSE": 10.164242555694674,
+          "bias": 0.480180349311511
+        },
+        "persistence_weight": 0.23763453456041755,
+        "skill_vs_persistence": 20.60207670588913
+      },
+      "120 min": {
+        "Smart persistence": {
+          "nMAE": 12.581249627156147,
+          "nRMSE": 16.93353124442408,
+          "bias": 8.247289220070863
+        },
+        "Hybrid (no SCADA feedback)": {
+          "nMAE": 7.152623677278906,
+          "nRMSE": 10.73677122102277,
+          "bias": -1.7608928718061456
+        },
+        "Hybrid + Kalman": {
+          "nMAE": 7.132185994206523,
+          "nRMSE": 10.872932116058834,
+          "bias": -1.2708534515093228
+        },
+        "Horizon-adaptive blend": {
+          "nMAE": 7.003562210036147,
+          "nRMSE": 10.896471823443598,
+          "bias": -0.09489240718600733
+        },
+        "persistence_weight": 0.12354942396845635,
+        "skill_vs_persistence": 35.6515090316344
+      },
+      "240 min": {
+        "Smart persistence": {
+          "nMAE": 17.79476257618597,
+          "nRMSE": 22.445479257511668,
+          "bias": 14.743573320665751
+        },
+        "Hybrid (no SCADA feedback)": {
+          "nMAE": 7.334695935218,
+          "nRMSE": 10.965803993450935,
+          "bias": -2.003015154141466
+        },
+        "Hybrid + Kalman": {
+          "nMAE": 7.285132632494149,
+          "nRMSE": 10.94014308180532,
+          "bias": -1.837652842396154
+        },
+        "Horizon-adaptive blend": {
+          "nMAE": 6.923495103260676,
+          "nRMSE": 10.87588084557412,
+          "bias": 0.09077220875735173
+        },
+        "persistence_weight": 0.11630171569877454,
+        "skill_vs_persistence": 51.54533917143085
+      }
+    },
+    "probabilistic": {
+      "PICP 90%": {
+        "nominal": 90,
+        "empirical": 89.98545605651361,
+        "mean_width": 29.09772367708309,
+        "by_regime": {
+          "Clear": 88.0050505050505,
+          "Broken cloud": 91.81775918177591,
+          "Overcast": 92.65734265734265
+        }
+      },
+      "PICP 80%": {
+        "nominal": 80,
+        "empirical": 80.44878454186578,
+        "mean_width": 21.843226510914512,
+        "by_regime": {
+          "Clear": 79.33501683501683,
+          "Broken cloud": 81.3575081357508,
+          "Overcast": 82.86713286713287
+        }
+      },
+      "PICP 50%": {
+        "nominal": 50,
+        "empirical": 50.90380220236859,
+        "mean_width": 10.634495626711521,
+        "by_regime": {
+          "Clear": 50.08417508417509,
+          "Broken cloud": 51.23198512319851,
+          "Overcast": 55.24475524475524
+        }
+      },
+      "mean_pinball": 1.9334253612489365,
+      "Static CQR 80% (no online adaptation)": 86.26636193642219
+    },
+    "dsm": {
+      "Schedule = physics twin": {
+        "penalty_inr": 2682904.726877915,
+        "band_compliance_pct": 77.71830638631785
+      },
+      "Schedule = P50": {
+        "penalty_inr": 2094992.365233958,
+        "band_compliance_pct": 79.52427897276002
+      },
+      "Schedule = S* (optimized)": {
+        "penalty_inr": 2078326.1992787956,
+        "band_compliance_pct": 75.79387626057218
+      }
+    },
+    "sanitization": {
+      "curtailed_blocks": 258,
+      "decurtail_error_pct": 1.1703033046124434,
+      "raw_scada_error_pct": 24.949798274220907,
+      "soiling_est_mae_pct": 1.897259536152138,
+      "sensor_blocks_flagged": 170,
+      "derated_blocks": 181
+    },
+    "per_plant": {
+      "bhadla": {
+        "nMAE_P50": 6.109786975497002,
+        "nMAE_twin": 6.006757277974144,
+        "dsm_inr": {
+          "Schedule = physics twin": 525375.5606173425,
+          "Schedule = P50": 369697.0200301439,
+          "Schedule = S* (optimized)": 427003.9801839818
+        }
+      },
+      "charanka": {
+        "nMAE_P50": 3.1535028315595675,
+        "nMAE_twin": 4.093395970377254,
+        "dsm_inr": {
+          "Schedule = physics twin": 118355.15905337334,
+          "Schedule = P50": 64216.500556694125,
+          "Schedule = S* (optimized)": 63900.76300042219
+        }
+      },
+      "pavagada": {
+        "nMAE_P50": 8.725141024417399,
+        "nMAE_twin": 9.288573741569753,
+        "dsm_inr": {
+          "Schedule = physics twin": 1671308.7185868097,
+          "Schedule = P50": 1346025.3664742643,
+          "Schedule = S* (optimized)": 1217763.315883646
+        }
+      },
+      "kamuthi": {
+        "nMAE_P50": 8.234630160211424,
+        "nMAE_twin": 8.656107442483393,
+        "dsm_inr": {
+          "Schedule = physics twin": 367865.28862038936,
+          "Schedule = P50": 315053.4781728557,
+          "Schedule = S* (optimized)": 369658.14021074574
+        }
+      }
+    },
+    "dsm_saving_pct": 22.53447621685266
+  },
+  "split": {
+    "bhadla": {
+      "train": [
+        "2026-04-28",
+        "2026-08-30",
+        125
+      ],
+      "calib": [
+        "2026-08-31",
+        "2026-09-27",
+        28
+      ],
+      "test": [
+        "2026-09-28",
+        "2026-10-24",
+        27
+      ]
+    },
+    "charanka": {
+      "train": [
+        "2026-04-28",
+        "2026-08-30",
+        125
+      ],
+      "calib": [
+        "2026-08-31",
+        "2026-09-27",
+        28
+      ],
+      "test": [
+        "2026-09-28",
+        "2026-10-24",
+        27
+      ]
+    },
+    "pavagada": {
+      "train": [
+        "2026-04-28",
+        "2026-08-30",
+        125
+      ],
+      "calib": [
+        "2026-08-31",
+        "2026-09-27",
+        28
+      ],
+      "test": [
+        "2026-09-28",
+        "2026-10-24",
+        27
+      ]
+    },
+    "kamuthi": {
+      "train": [
+        "2026-04-28",
+        "2026-08-30",
+        125
+      ],
+      "calib": [
+        "2026-08-31",
+        "2026-09-27",
+        28
+      ],
+      "test": [
+        "2026-09-28",
+        "2026-10-24",
+        27
+      ]
+    },
+    "srco": {
+      "train": [
+        "2024-01-01",
+        "2024-12-07",
+        319
+      ],
+      "calib": [
+        "2024-12-08",
+        "2025-02-16",
+        68
+      ],
+      "test": [
+        "2025-02-17",
+        "2025-04-29",
+        69
+      ]
+    },
+    "fsa": {
+      "train": [
+        "2024-02-01",
+        "2025-06-03",
+        489
+      ],
+      "calib": [
+        "2025-06-04",
+        "2025-09-17",
+        106
+      ],
+      "test": [
+        "2025-09-18",
+        "2025-12-31",
+        105
+      ]
+    }
+  },
+  "sensor_log": {
+    "bhadla": {
+      "days_kept": 180,
+      "days_total": 180
+    },
+    "charanka": {
+      "days_kept": 180,
+      "days_total": 180
+    },
+    "pavagada": {
+      "days_kept": 180,
+      "days_total": 180
+    },
+    "kamuthi": {
+      "days_kept": 180,
+      "days_total": 180
+    },
+    "srco": {
+      "days_kept": 456,
+      "days_total": 486,
+      "lag_min": 0,
+      "lag_corr": 0.954,
+      "sensor_log": [
+        "Thermocouple 'thermocouple_pad_2_back-of-module_temperature_1_(c)' rejected: 99% out of range (median 3276.7), 99% frozen"
+      ]
+    },
+    "fsa": {
+      "days_kept": 700,
+      "days_total": 700,
+      "lag_min": 5,
+      "lag_corr": 0.978,
+      "sensor_log": []
+    }
+  },
+  "feature_gain": {
+    "real": {
+      "phys": 13.613646507263184,
+      "lat": 11.54910945892334,
+      "hour": 9.818806648254395,
+      "tracker": 9.319931030273438,
+      "phys_cs": 8.687227249145508,
+      "soiling_est": 7.355283260345459,
+      "cloud": 7.082630634307861,
+      "doy_cos": 6.992115020751953,
+      "doy_sin": 6.740533351898193,
+      "sin_az": 6.036999225616455,
+      "clip_phys": 5.914398670196533,
+      "temp": 5.842757701873779
+    },
+    "sim": {
+      "lat": 53.8032112121582,
+      "phys": 9.987330436706543,
+      "tracker": 7.028233051300049,
+      "clip_phys": 5.809241771697998,
+      "phys_cs": 5.177443981170654,
+      "dc_ac": 4.880993366241455,
+      "cos_zen": 4.772402286529541,
+      "cloud": 4.247793674468994,
+      "doy_sin": 4.211187362670898,
+      "phys_lag_d": 3.8280692100524902,
+      "dni_kb": 3.8210196495056152,
+      "cloud_low": 3.6674773693084717
+    }
+  },
+  "built_at": "2026-10-28T23:22+05:30"
+}

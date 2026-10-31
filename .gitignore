@@ -1,0 +1,16 @@
+# secrets / local tooling
+.env*
+.vercel
+
+# python
+__pycache__/
+*.pyc
+
+# large or third-party data (re-downloaded by the pipeline)
+data/raw/
+data/cache/
+data/dataset.pkl
+
+# runtime state
+data/server.log
+data/revisions.json

@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SolarPulse Cockpit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<style>
+:root{
+  --bg:#0d0f12; --panel:#14171c; --panel2:#1a1e24; --line:#262b33; --line2:#323843;
+  --ink:#e9e4d8; --dim:#8a8f98; --faint:#5a606a;
+  --sun:#ffb21a; --sun2:#ff7a1a; --act:#4fd18b; --sched:#5aa9ff; --risk:#ff4d4d; --amber:#ffcc4d;
+  --mono:'JetBrains Mono',ui-monospace,monospace; --disp:'Big Shoulders Display',sans-serif;
+  --body:'IBM Plex Sans Condensed',sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px}
+body{background:
+  radial-gradient(900px 500px at 85% -10%, rgba(255,178,26,.10), transparent 60%),
+  radial-gradient(700px 400px at -10% 110%, rgba(90,169,255,.06), transparent 60%), var(--bg);
+  min-height:100vh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.035;
+  background-image:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px)}
+button,select,input{font-family:inherit;color:inherit}
+.mono{font-family:var(--mono)}
+
+/* ---------- top bar */
+header{display:flex;align-items:center;gap:22px;padding:12px 22px;border-bottom:1px solid var(--line);
+  background:rgba(13,15,18,.85);backdrop-filter:blur(6px);position:sticky;top:0;z-index:20;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{width:30px;height:30px}
+.brand b{font-family:var(--disp);font-weight:800;font-size:26px;letter-spacing:.04em;text-transform:uppercase}
+.brand b span{color:var(--sun)}
+.brand small{display:block;font-size:10px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase;margin-top:-3px}
+nav{display:flex;gap:2px;background:var(--panel);border:1px solid var(--line);padding:3px;border-radius:3px}
+nav button{background:none;border:0;padding:7px 14px;font-family:var(--disp);font-weight:700;font-size:15px;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--dim);cursor:pointer;border-radius:2px}
+nav button.on{background:var(--sun);color:#1b1305}
+.ctl{display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:wrap}
+.ctl label{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+select{background:var(--panel);border:1px solid var(--line2);padding:7px 10px;border-radius:2px;font-size:13px}
+.clock{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line2);padding:4px 10px;border-radius:2px}
+.clock input[type=range]{width:180px;accent-color:var(--sun)}
+.clock .t{font-family:var(--mono);font-size:18px;color:var(--sun);min-width:54px}
+.clock button{background:none;border:1px solid var(--line2);width:28px;height:26px;cursor:pointer;border-radius:2px}
+.mode{font-family:var(--mono);font-size:11px;padding:3px 7px;border:1px solid currentColor;border-radius:2px}
+.mode.live{color:var(--act)} .mode.replay{color:var(--amber)}
+.mode.live::before{content:"● ";animation:blink 1.4s infinite}
+@keyframes blink{50%{opacity:.2}}
+
+main{padding:18px 22px 40px;max-width:1680px;margin:0 auto}
+.view{display:none} .view.on{display:block;animation:rise .5s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ---------- panels */
+.grid{display:grid;gap:14px}
+.panel{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:3px;
+  padding:14px 16px;position:relative}
+.panel h3{margin:0 0 10px;font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:8px}
+.panel h3 .tag{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--faint);text-transform:none}
+.panel::after{content:"";position:absolute;top:-1px;left:-1px;width:10px;height:10px;border-top:2px solid var(--sun);border-left:2px solid var(--sun)}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.kpi{padding:12px 14px}
+.kpi .l{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.kpi .v{font-family:var(--disp);font-weight:800;font-size:34px;line-height:1.05;margin-top:4px}
+.kpi .v small{font-size:15px;color:var(--dim);font-weight:500;margin-left:3px}
+.kpi .s{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:2px}
+.sun{color:var(--sun)} .green{color:var(--act)} .red{color:var(--risk)} .blue{color:var(--sched)}
+
+.op{grid-template-columns:minmax(0,1fr) 380px}
+#fan{height:430px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin-top:4px}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:6px}
+
+/* gate */
+.gate .count{font-family:var(--disp);font-size:54px;font-weight:800;line-height:1;color:var(--sun)}
+.gate .count small{font-size:16px;color:var(--dim);font-weight:500}
+.sugg{max-height:190px;overflow:auto;margin:10px 0;border-top:1px solid var(--line)}
+.sugg div{display:grid;grid-template-columns:52px 1fr 1fr 64px;gap:6px;font-family:var(--mono);font-size:12px;
+  padding:5px 2px;border-bottom:1px solid var(--line)}
+.sugg div.h{color:var(--faint);font-size:10px;letter-spacing:.1em}
+.btn{background:var(--sun);color:#1b1305;border:0;padding:10px 14px;font-family:var(--disp);font-weight:800;
+  font-size:16px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border-radius:2px;width:100%}
+.btn:disabled{background:var(--line2);color:var(--faint);cursor:default}
+.btn.ghost{background:none;border:1px solid var(--line2);color:var(--ink);font-size:13px;padding:8px}
+.row{display:flex;gap:8px}
+.note{font-size:12px;color:var(--dim);line-height:1.45}
+.ok{color:var(--act);font-family:var(--mono);font-size:12px}
+
+/* explain */
+.wf{display:flex;flex-direction:column;gap:5px}
+.wf .r{display:grid;grid-template-columns:150px 1fr 62px;align-items:center;gap:8px;font-size:12px}
+.wf .r .n{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wf .bar{position:relative;height:14px;background:rgba(255,255,255,.03)}
+.wf .bar span{position:absolute;top:0;height:100%}
+.wf .r .x{font-family:var(--mono);text-align:right}
+.wf .r.tot .n{color:var(--ink);font-weight:600}
+
+/* health */
+.health{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:0;padding:0}
+.health>div{padding:12px 14px;border-right:1px solid var(--line)}
+.health>div:last-child{border-right:0}
+.health .l{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.health .v{font-family:var(--mono);font-size:19px;margin-top:5px}
+.health .s{font-size:11px;color:var(--faint);margin-top:2px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+
+/* radar */
+.radar{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+#radar{width:300px;height:300px;background:#0a0c0f;border:1px solid var(--line)}
+.alert{border-left:3px solid var(--risk);padding:8px 10px;background:rgba(255,77,77,.08);font-size:13px;margin-bottom:10px}
+.alert.calm{border-color:var(--act);background:rgba(79,209,139,.06)}
+#nowc{height:180px}
+
+/* grid view */
+.matrix{display:grid;gap:3px;font-family:var(--mono);font-size:11px}
+.matrix .c{height:26px;border-radius:2px;display:flex;align-items:center;justify-content:center}
+.matrix .lbl{justify-content:flex-start;color:var(--dim);font-family:var(--body);font-size:12px}
+.lv-1{background:transparent;color:var(--faint)} .lv0{background:rgba(79,209,139,.22)} .lv1{background:rgba(255,204,77,.45)} .lv2{background:rgba(255,77,77,.7)}
+.pcards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.pcard .spark{height:90px}
+.pcard .ramp{font-family:var(--mono);font-size:11px;color:var(--risk);min-height:16px}
+
+/* validation */
+.val{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ch{height:270px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:6px 6px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--mono);font-size:12px}
+th{color:var(--faint);font-weight:400;font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+td:first-child,th:first-child{text-align:left;font-family:var(--body);font-size:13px}
+tr.best td{color:var(--sun)}
+.layers{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.layer{border:1px solid var(--line2);padding:10px;border-radius:2px;font-size:12px;color:var(--dim);line-height:1.45}
+.layer b{display:block;font-family:var(--disp);font-size:17px;color:var(--ink);letter-spacing:.06em;margin-bottom:4px}
+.layer b em{color:var(--sun);font-style:normal;margin-right:6px}
+.src{font-family:var(--mono);font-size:11px;padding:3px 7px;border-radius:2px;border:1px solid}
+.src.real{color:#0d0f12;background:var(--act);border-color:var(--act)} .src.sim{color:var(--dim);border-color:var(--line2)}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:2px;overflow:hidden;margin-left:auto}
+.seg button{background:none;border:0;padding:5px 12px;font-family:var(--disp);font-weight:700;letter-spacing:.08em;font-size:13px;color:var(--dim);cursor:pointer;text-transform:uppercase}
+.seg button.on{background:var(--sun);color:#1b1305}
+.issues{list-style:none;margin:0;padding:0;font-size:13px}
+.issues li{padding:6px 0 6px 12px;border-left:3px solid var(--line2);margin-bottom:5px;color:var(--ink)}
+.issues li.high{border-color:var(--risk)} .issues li.med{border-color:var(--amber)} .issues li.low{border-color:var(--sched)}
+.st{font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:2px}
+.st.ok{background:rgba(79,209,139,.15);color:var(--act)} .st.under{background:rgba(255,204,77,.18);color:var(--amber)}
+.st.trips{background:rgba(255,122,26,.2);color:var(--sun2)} .st.fault{background:rgba(255,77,77,.22);color:var(--risk)}
+.sec{font-family:var(--disp);font-weight:800;font-size:26px;letter-spacing:.06em;text-transform:uppercase;margin:26px 0 12px;display:flex;align-items:center;gap:12px}
+.sec small{font-family:var(--body);font-weight:400;font-size:13px;letter-spacing:0;text-transform:none;color:var(--dim)}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--act);color:#06210f;padding:10px 16px;font-weight:600;
+  border-radius:2px;transform:translateY(80px);transition:.3s;z-index:50}
+.toast.on{transform:none}
+.err{color:var(--risk);padding:30px;font-family:var(--mono)}
+@media (max-width:1200px){.op{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(3,1fr)}.health{grid-template-columns:repeat(4,1fr)}
+  .pcards{grid-template-columns:repeat(2,1fr)}.val{grid-template-columns:1fr}.layers{grid-template-columns:1fr 1fr}}
+@media (max-width:700px){main{padding:12px}.kpis{grid-template-columns:1fr 1fr}.radar{grid-template-columns:1fr}.health{grid-template-columns:1fr 1fr}.pcards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="6.5" fill="#ffb21a"/><g stroke="#ffb21a" stroke-width="2.2" stroke-linecap="round">
+      <path d="M16 2.5v4M16 25.5v4M2.5 16h4M25.5 16h4M6.4 6.4l2.8 2.8M22.8 22.8l2.8 2.8M6.4 25.6l2.8-2.8M22.8 9.2l2.8-2.8"/></g>
+      <path d="M3 22c3-3 5 3 8 0s5 3 8 0 5 3 8 0" stroke="#0d0f12" stroke-width="2.5" fill="none"/></svg>
+    <div><b>Solar<span>Pulse</span></b><small>Forecast &amp; dispatch cockpit</small></div>
+  </div>
+  <nav>
+    <button data-v="op" class="on">Operator desk</button>
+    <button data-v="grid">Grid desk</button>
+    <button data-v="val">Validation</button>
+  </nav>
+  <div class="ctl">
+    <label>Plant</label><select id="plant"></select>
+    <label>Day</label><select id="date"></select>
+    <div class="clock" title="Simulated control-room clock">
+      <button id="play">▶</button>
+      <input id="now" type="range" min="0" max="96" value="54">
+      <span class="t" id="nowt">13:30</span>
+    </div>
+    <span class="mode" id="mode">…</span>
+    <span class="src sim" id="src">…</span>
+  </div>
+</header>
+
+<main>
+<!-- ================= OPERATOR ================= -->
+<section class="view on" id="v-op">
+  <div class="kpis">
+    <div class="panel kpi"><div class="l">Energy forecast P50</div><div class="v sun" id="k-e">–</div><div class="s" id="k-e2"></div></div>
+    <div class="panel kpi"><div class="l">Delivered so far</div><div class="v green" id="k-a">–</div><div class="s" id="k-a2"></div></div>
+    <div class="panel kpi"><div class="l">DSM charges so far</div><div class="v" id="k-d">–</div><div class="s" id="k-d2"></div></div>
+    <div class="panel kpi"><div class="l">±10% band compliance</div><div class="v" id="k-c">–</div><div class="s" id="k-c2"></div></div>
+    <div class="panel kpi"><div class="l">Expected rest-of-day DSM</div><div class="v" id="k-x">–</div><div class="s">on current schedule</div></div>
+    <div class="panel kpi"><div class="l">Live SCADA correction</div><div class="v" id="k-k">–</div><div class="s" id="k-k2">Kalman bias, last block</div></div>
+  </div>
+
+  <div class="grid op">
+    <div class="panel">
+      <h3>96-block forecast &amp; schedule <span class="tag" id="fan-tag"></span></h3>
+      <div id="fan"></div>
+      <div class="legend">
+        <span><i style="background:var(--act)"></i>Actual SCADA</span>
+        <span><i style="background:var(--sun)"></i>P50 day-ahead</span>
+        <span><i style="background:var(--sun2);height:4px"></i>Intraday (SCADA-assimilated)</span>
+        <span><i style="background:rgba(255,178,26,.35);height:10px"></i>P10–P90 / P25–P75 (conformal)</span>
+        <span><i style="background:var(--sched)"></i>Grid schedule</span>
+        <span><i style="background:repeating-linear-gradient(90deg,var(--sched) 0 3px,transparent 3px 6px)"></i>±10% DSM corridor</span>
+        <span><i style="background:var(--risk)"></i>Penalised block</span>
+      </div>
+    </div>
+    <div class="grid" style="align-content:start">
+      <div class="panel gate">
+        <h3>Gate closure <span class="tag">revision effective t+4 blocks</span></h3>
+        <div class="row" style="align-items:flex-end;gap:16px">
+          <div class="count" id="g-min">–<small> min</small></div>
+          <div class="note">to revise blocks from <b class="mono sun" id="g-first">–</b><br>trigger: |Δ| ≥ <span id="g-trig"></span>% of AvC</div>
+        </div>
+        <div class="sugg" id="g-list"></div>
+        <div class="row">
+          <button class="btn" id="g-approve" disabled>Approve revision</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn ghost" id="g-csv">Export 96-block CSV</button>
+          <button class="btn ghost" id="g-reset">Reset revisions</button>
+        </div>
+        <div class="note" id="g-log" style="margin-top:8px"></div>
+      </div>
+      <div class="panel">
+        <h3>Why this forecast? <span class="tag" id="x-block">click a block</span></h3>
+        <div class="wf" id="wf"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel health" style="margin-top:14px" id="health"></div>
+
+  <div class="panel" style="margin-top:14px">
+    <h3>Cloud trajectory radar <span class="tag" id="r-src"></span></h3>
+    <div class="radar">
+      <div>
+        <canvas id="radar" width="600" height="600"></canvas>
+        <div class="row" style="margin-top:8px;align-items:center">
+          <input type="range" id="r-lead" min="0" max="12" value="0" style="flex:1;accent-color:var(--sun)">
+          <span class="mono sun" id="r-leadt" style="width:64px;text-align:right">+0 min</span>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <button class="btn ghost" id="r-cmv" style="border-color:var(--sun)">Optical-flow CMV</button>
+          <button class="btn ghost" id="r-nwp">NWP field</button>
+        </div>
+      </div>
+      <div>
+        <div id="r-alert" class="alert calm">Loading nowcast…</div>
+        <div class="note" id="r-meta"></div>
+        <div id="nowc"></div>
+        <div class="note">The radar always shows the <b>live</b> field around the selected plant, issued now. Cloud motion vectors come from dense Farnebäck optical flow over the last hour of frames, then the current field is advected forward 0–180 min to project shadows onto the plant.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= GRID ================= -->
+<section class="view" id="v-grid">
+  <div class="kpis">
+    <div class="panel kpi"><div class="l">Fleet capacity</div><div class="v" id="f-cap">–</div><div class="s">4 plants · 4 states</div></div>
+    <div class="panel kpi"><div class="l">Fleet energy P50</div><div class="v sun" id="f-e">–</div><div class="s">today</div></div>
+    <div class="panel kpi"><div class="l">Fleet output now</div><div class="v green" id="f-now">–</div><div class="s">last completed block</div></div>
+    <div class="panel kpi"><div class="l">Peak reserve need</div><div class="v red" id="f-res">–</div><div class="s">P50 − P10, diversified</div></div>
+    <div class="panel kpi"><div class="l">Evening ramp-down</div><div class="v" id="f-ramp">–</div><div class="s">steepest, 15:00–20:00</div></div>
+    <div class="panel kpi"><div class="l">Ramp events ahead</div><div class="v" id="f-ev">–</div><div class="s">≥15% capacity in 1 h</div></div>
+  </div>
+  <div class="grid" style="grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)">
+    <div class="panel"><h3>Regional roll-up <span class="tag">aggregate of all plants</span></h3><div id="agg" style="height:330px"></div></div>
+    <div class="panel"><h3>Ramp-risk early warning <span class="tag">hourly, 05:00–19:00</span></h3>
+      <div class="matrix" id="matrix"></div>
+      <div class="legend" style="margin-top:12px">
+        <span><i class="lv0" style="height:10px"></i>stable</span><span><i class="lv1" style="height:10px"></i>watch</span>
+        <span><i class="lv2" style="height:10px"></i>ramp / high uncertainty</span></div>
+      <div class="note" style="margin-top:10px" id="evlist"></div>
+    </div>
+  </div>
+  <div class="pcards" style="margin-top:14px" id="pcards"></div>
+</section>
+
+<!-- ================= VALIDATION ================= -->
+<section class="view" id="v-val">
+  <div class="panel" style="margin-bottom:14px">
+    <h3>What's running <span class="tag">L1–L5 of the SolarPulse blueprint</span></h3>
+    <div class="layers">
+      <div class="layer"><b><em>L1</em>Ingest &amp; sanitize</b>Open-Meteo multi-model NWP (ECMWF, GFS, ICON) + ERA5. Real NREL PVDAQ and Kaggle telemetry plus simulated SCADA. Per-channel sensor QC, clock alignment, clear-sky checks, frozen-register detection, satellite imputation, availability and curtailment reconstruction, soiling EWMA.</div>
+      <div class="layer"><b><em>L2</em>Physics twin</b>pvlib: SPA, single-axis backtracking, Perez-Driesse transposition, ASHRAE IAM, Faiman temperature, PVWatts DC, inverter clipping. Farnebäck optical-flow cloud nowcast.</div>
+      <div class="layer"><b><em>L3</em>Hybrid ML</b>XGBoost multi-quantile model on the twin residual. Online Kalman SCADA assimilation. Horizon-adaptive blend with smart persistence, weights fitted per lead.</div>
+      <div class="layer"><b><em>L4</em>Risk &amp; dispatch</b>Regime-binned CQR plus online ACI interval scaling. DSM slab penalties, critical-fractile schedule S*, t+4 gate-closure watchdog.</div>
+      <div class="layer"><b><em>L5</em>Cockpit &amp; XAI</b>FastAPI + ECharts. Additive explanation per block (physics + XGBoost SHAP by feature family), revision approval, 96-block CSV export.</div>
+    </div>
+  </div>
+  <div class="sec">Forecast backtest <small id="v-split"></small>
+    <div class="seg" id="grp"><button data-g="real" class="on">Real plants · NREL</button><button data-g="sim">Simulated India fleet</button></div></div>
+  <div class="grid val">
+    <div class="panel"><h3>Day-ahead accuracy <span class="tag">normalized by capacity, daylight blocks</span></h3><table id="t-det"></table><div id="c-det" class="ch" style="height:200px"></div></div>
+    <div class="panel"><h3>Intraday: error vs lead time <span class="tag">nRMSE %</span></h3><div id="c-intra" class="ch"></div></div>
+    <div class="panel"><h3>Uncertainty calibration <span class="tag">empirical vs nominal coverage</span></h3><div id="c-cal" class="ch"></div><div class="note" id="n-cal"></div></div>
+    <div class="panel"><h3>DSM settlement, test window <span class="tag">all plants</span></h3><table id="t-dsm"></table><div id="c-dsm" class="ch" style="height:200px"></div></div>
+    <div class="panel"><h3>Sanitization engine</h3><table id="t-san"></table><div class="note" style="margin-top:10px" id="n-san"></div></div>
+    <div class="panel"><h3>What the ML learned <span class="tag">XGBoost gain, residual model</span></h3><div id="c-gain" class="ch"></div></div>
+  </div>
+  <div class="sec">Real Indian plants <small id="in-src"></small></div>
+  <div id="india"></div>
+  <div class="panel note" style="margin-top:14px" id="honesty"></div>
+</section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const fmt = (x, d = 0) => x == null || isNaN(x) ? '–' : Number(x).toLocaleString('en-IN', {maximumFractionDigits: d, minimumFractionDigits: d});
+const inr = x => '₹' + (x >= 1e5 ? fmt(x / 1e5, 2) + ' L' : fmt(x));
+const C = {sun:'#ffb21a', sun2:'#ff7a1a', act:'#4fd18b', sched:'#5aa9ff', risk:'#ff4d4d', dim:'#8a8f98', line:'#262b33', ink:'#e9e4d8', amber:'#ffcc4d'};
+const AX = {axisLine:{lineStyle:{color:C.line}}, axisLabel:{color:C.dim, fontFamily:'JetBrains Mono', fontSize:10}, splitLine:{lineStyle:{color:'#1c2027'}}};
+const charts = {};
+function chart(id){ if(!charts[id]) charts[id] = echarts.init(document.getElementById(id), null, {renderer:'canvas'}); return charts[id]; }
+window.addEventListener('resize', () => Object.values(charts).forEach(c => c.resize()));
+async function api(path, opts){ const r = await fetch(path, opts); if(!r.ok) throw new Error(await r.text()); return r.json(); }
+function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on'); setTimeout(() => e.classList.remove('on'), 2600); }
+
+let META, DAY, FLEET, NOW = 54, VIEW = 'op', SEL = null, NC = null, NCMODE = 'cmv', playing = null;
+
+// ------------------------------------------------------------ boot
+async function boot(){
+  META = await api('/api/meta');
+  const opt = p => `<option value="${p.id}">${p.name} · ${p.state} · ${fmtMW(p.ac_mw)} MW</option>`;
+  $('#plant').innerHTML = `<optgroup label="Real telemetry · NREL PVDAQ">${META.plants.filter(p => p.kind === 'pvdaq').map(opt).join('')}</optgroup>` +
+    `<optgroup label="Simulated SCADA · India">${META.plants.filter(p => p.kind === 'sim').map(opt).join('')}</optgroup>`;
+  $('#plant').value = 'srco';
+  buildDates();
+  $('#plant').onchange = () => { SEL = null; const keep = date(); buildDates(keep); refresh(); loadNowcast(); };
+  $('#date').onchange = () => { SEL = null; const live = isLive(); if(live) NOW = null; refresh(); };
+  $('#now').oninput = e => { NOW = +e.target.value; $('#nowt').textContent = hhmm(NOW); debounce(refresh, 140); };
+  $('#play').onclick = togglePlay;
+  document.querySelectorAll('nav button').forEach(b => b.onclick = () => setView(b.dataset.v));
+  $('#g-approve').onclick = approve;
+  $('#g-csv').onclick = () => location.href = `/api/schedule.csv?plant=${plant()}&date=${date()}`;
+  $('#g-reset').onclick = async () => { await api(`/api/revise/reset?plant=${plant()}&date=${date()}`, {method:'POST'}); toast('Revisions cleared'); refresh(); };
+  $('#r-lead').oninput = drawRadar;
+  $('#r-cmv').onclick = () => { NCMODE = 'cmv'; $('#r-cmv').style.borderColor = C.sun; $('#r-nwp').style.borderColor = ''; drawRadar(); };
+  $('#r-nwp').onclick = () => { NCMODE = 'nwp'; $('#r-nwp').style.borderColor = C.sun; $('#r-cmv').style.borderColor = ''; drawRadar(); };
+  const h = location.hash.slice(1);
+  if(['op', 'grid', 'val'].includes(h)) setView(h); else await refresh();
+  loadNowcast();
+  loadMetrics();
+}
+const plant = () => $('#plant').value, date = () => $('#date').value;
+const P0 = () => META.plants.find(p => p.id === plant());
+const isLive = () => date() === P0().today || date() === P0().tomorrow;
+const fmtMW = x => fmt(x, x < 10 ? 2 : 0);
+let MWD = 1;   // decimals for MW values of the selected plant
+function buildDates(keep){
+  const p = P0(), cloudy = new Set(p.cloudy_dates);
+  $('#date').innerHTML = [`<option value="${p.today}">Live · today ${p.today}${p.kind === 'pvdaq' ? ' (forecast only)' : ''}</option>`,
+    `<option value="${p.tomorrow}">Live · tomorrow (day-ahead)</option>`,
+    `<optgroup label="Replay: held-out test days">`,
+    ...p.replay_dates.slice().reverse().map(d => `<option value="${d}">${d}${cloudy.has(d) ? '  ☁ variable' : ''}</option>`), `</optgroup>`].join('');
+  $('#date').value = (keep && p.replay_dates.includes(keep)) ? keep : p.cloudy_dates[0];
+}
+const fleetDate = () => (P0().kind === 'sim' && (META.fleet_dates.includes(date()) || isLive())) ? date() : META.fleet_cloudy[0];
+const hhmm = b => `${String(Math.floor(b * 15 / 60)).padStart(2, '0')}:${String(b * 15 % 60).padStart(2, '0')}`;
+let _t; function debounce(f, ms){ clearTimeout(_t); _t = setTimeout(f, ms); }
+
+function setView(v){
+  VIEW = v; history.replaceState(null, '', '#' + v);
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  document.querySelectorAll('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
+  refresh();
+  setTimeout(() => Object.values(charts).forEach(c => c.resize()), 30);
+}
+
+function togglePlay(){
+  if(playing){ clearInterval(playing); playing = null; $('#play').textContent = '▶'; return; }
+  if(isLive()) return toast('The clock follows real time in live mode');
+  $('#play').textContent = '❚❚';
+  playing = setInterval(() => { NOW = (NOW ?? 0) + 1; if(NOW > 80){ NOW = 24; } $('#now').value = NOW; $('#nowt').textContent = hhmm(NOW); refresh(); }, 1300);
+}
+
+async function refresh(){
+  try{
+    const q = (NOW == null || isLive()) ? '' : `&now=${NOW}`;
+    if(VIEW === 'op'){ DAY = await api(`/api/day?plant=${plant()}&date=${date()}${q}`); renderOp(); syncClock(DAY); }
+    if(VIEW === 'grid'){ FLEET = await api(`/api/fleet?date=${fleetDate()}${fleetDate() === date() ? q : ''}`); renderGrid(); syncClock(FLEET); }
+    if(VIEW === 'val') syncClock(DAY || {mode:'replay', now:NOW});
+  }catch(e){ console.error(e); toast('Error: ' + e.message.slice(0, 80)); }
+}
+function syncClock(d){
+  const live = d.mode === 'live';
+  const real = VIEW !== 'grid' && P0().kind === 'pvdaq';
+  $('#src').className = 'src ' + (real ? 'real' : 'sim');
+  $('#src').textContent = real ? 'REAL DATA · NREL' : 'SIMULATED SCADA';
+  $('#src').title = real ? P0().source : 'Plant telemetry simulated from ERA5; forecasts are real NWP';
+  $('#mode').className = 'mode ' + d.mode; $('#mode').textContent = live ? 'LIVE' : 'REPLAY';
+  $('#now').disabled = live;
+  if(live || NOW == null){ NOW = d.now; }
+  $('#now').value = d.now; $('#nowt').textContent = hhmm(Math.min(d.now, 95)) ;
+}
+
+// ------------------------------------------------------------ operator
+function renderOp(){
+  const d = DAY, k = d.kpi, L = d.ledger;
+  MWD = d.ac_mw < 10 ? 2 : 1; const ED = d.ac_mw < 10 ? 2 : 0;
+  $('#k-e').innerHTML = `${fmt(k.energy_p50_mwh, ED)}<small>MWh</small>`;
+  $('#k-e2').textContent = `P10 ${fmt(k.energy_p10_mwh, ED)} · P90 ${fmt(k.energy_p90_mwh, ED)} · peak ${fmt(k.peak_p50_mw, MWD)} MW`;
+  $('#k-a').innerHTML = d.has_actuals ? `${fmt(k.energy_actual_mwh, ED)}<small>MWh</small>` : '–';
+  $('#k-a2').textContent = !d.has_actuals ? 'no public live telemetry for this plant' :
+    `up to ${d.now_time} · ${d.kind === 'pvdaq' ? 'real NREL telemetry' : d.mode === 'live' ? 'simulated SCADA' : 'replayed simulated SCADA'}`;
+  const cur = L['Current schedule'], tw = L['Physics twin only'], p50 = L['Submit P50'];
+  $('#k-d').innerHTML = inr(cur.inr);
+  $('#k-d').className = 'v ' + (cur.inr > 0 ? 'red' : 'green');
+  $('#k-d2').textContent = `twin-only ${inr(tw.inr)} · P50 ${inr(p50.inr)}`;
+  $('#k-c').innerHTML = cur.compliance == null ? '–' : `${fmt(cur.compliance, 1)}<small>%</small>`;
+  $('#k-c2').textContent = `blocks within ±10% of AvC so far`;
+  $('#k-x').innerHTML = inr(d.expected_rest_inr);
+  $('#k-k').innerHTML = `${d.health.kalman_bias_mw > 0 ? '+' : ''}${fmt(d.health.kalman_bias_mw, MWD)}<small>MW</small>`;
+  $('#fan-tag').textContent = `${META.plants.find(p => p.id === d.plant).name} · ${d.date} · now ${d.now_time}`;
+  renderFan(d); renderGate(d); renderHealth(d);
+  if(SEL == null){ SEL = Math.min(Math.max(d.now + 4, 40), 70); }
+  renderExplain(SEL);
+}
+
+function renderFan(d){
+  const n = d.now, t = d.times, Q = d.q;
+  const band = (lo, hi) => [lo.map(v => v ?? 0), hi.map((v, i) => (v ?? 0) - (lo[i] ?? 0))];
+  const [b5, b5w] = band(Q.p05, Q.p95), [b10, b10w] = band(Q.p10, Q.p90), [b25, b25w] = band(Q.p25, Q.p75);
+  const intra = d.intraday.map((v, i) => i >= n - 1 ? v : null);
+  const corrHi = d.schedule.map((s, i) => s > 0.5 ? s + 0.1 * d.avc[i] : null);
+  const corrLo = d.schedule.map((s, i) => s > 0.5 ? Math.max(0, s - 0.1 * d.avc[i]) : null);
+  const pen = d.penalty_blocks.map((p, i) => p > 0 ? [i, p] : null).filter(Boolean);
+  const curt = d.curtail.map((c, i) => c ? i : null).filter(x => x != null);
+  const areas = [];
+  curt.forEach(i => areas.push([{xAxis: t[i], itemStyle:{color:'rgba(90,169,255,.10)'}}, {xAxis: t[Math.min(i + 1, 95)]}]));
+  const stack = (name, base, w, op) => [
+    {name: name + 'b', type:'line', data: base, stack: name, lineStyle:{opacity:0}, symbol:'none', silent:true},
+    {name, type:'line', data: w, stack: name, lineStyle:{opacity:0}, symbol:'none', areaStyle:{color:`rgba(255,178,26,${op})`}, silent:true}];
+  const o = {
+    animationDuration: 400, grid:{left:52, right:16, top:14, bottom:44},
+    tooltip:{trigger:'axis', backgroundColor:'#0d0f12', borderColor:C.line, textStyle:{color:C.ink, fontFamily:'JetBrains Mono', fontSize:11},
+      formatter: ps => { const i = ps[0].dataIndex; const r = (l, v, c) => v == null ? '' : `<div><span style="color:${c}">■</span> ${l} <b style="float:right;margin-left:14px">${fmt(v, l === 'DSM ₹' ? 0 : MWD)}</b></div>`;
+        return `<b>Block ${i + 1} · ${t[i]}</b>` + r('Actual', d.actual[i], C.act) + r('P50 day-ahead', Q.p50[i], C.sun) + r('Intraday', i >= n ? d.intraday[i] : null, C.sun2)
+          + r('P10', Q.p10[i], C.dim) + r('P90', Q.p90[i], C.dim) + r('Schedule', d.schedule[i], C.sched) + (d.penalty_blocks[i] > 0 ? r('DSM ₹', d.penalty_blocks[i], C.risk) : '')
+          + (d.curtail[i] ? `<div style="color:${C.sched}">Grid curtailment: setpoint ${fmt(d.setpoint[i], 0)} MW</div>` : '') + '<div style="color:#5a606a;margin-top:4px">click for explanation</div>'; }},
+    xAxis:{type:'category', data:t, boundaryGap:false, ...AX, axisLabel:{...AX.axisLabel, interval:7}},
+    yAxis:{type:'value', name:'MW', nameTextStyle:{color:C.dim}, ...AX, max: d.ac_mw < 10 ? Math.ceil(d.ac_mw * 1.08 * 4) / 4 : Math.ceil(d.ac_mw * 1.08 / 10) * 10},
+    dataZoom:[{type:'inside', startValue:20, endValue:78}, {type:'slider', height:14, bottom:6, startValue:20, endValue:78, borderColor:C.line, fillerColor:'rgba(255,178,26,.12)', handleStyle:{color:C.sun}, textStyle:{color:C.dim}}],
+    series:[
+      ...stack('P05–P95', b5, b5w, .08), ...stack('P10–P90', b10, b10w, .16), ...stack('P25–P75', b25, b25w, .22),
+      {name:'±10%+', type:'line', data:corrHi, symbol:'none', step:'middle', lineStyle:{color:C.sched, width:1, type:[3, 3], opacity:.6}},
+      {name:'±10%-', type:'line', data:corrLo, symbol:'none', step:'middle', lineStyle:{color:C.sched, width:1, type:[3, 3], opacity:.6}},
+      {name:'Schedule', type:'line', data:d.schedule, symbol:'none', step:'middle', lineStyle:{color:C.sched, width:2}},
+      {name:'P50', type:'line', data:Q.p50, symbol:'none', smooth:.2, lineStyle:{color:C.sun, width:1.6, type:[6, 4]}},
+      {name:'Intraday', type:'line', data:intra, symbol:'none', smooth:.2, lineStyle:{color:C.sun2, width:3, shadowColor:'rgba(255,122,26,.5)', shadowBlur:8}},
+      {name:'Actual', type:'line', data:d.actual, symbol:'none', lineStyle:{color:C.act, width:2.4},
+        markLine:{symbol:'none', silent:true, label:{formatter:'NOW', color:C.sun, fontFamily:'Big Shoulders Display', fontWeight:800, fontSize:13}, lineStyle:{color:C.sun, width:1.5, type:'solid'}, data:[{xAxis:t[Math.min(n, 95)]}]},
+        markArea:{silent:true, data:[[{xAxis:t[Math.min(n + 4, 95)], itemStyle:{color:'rgba(255,178,26,.04)'}}, {xAxis:t[95]}], ...areas]}},
+      {name:'Penalty', type:'scatter', data:pen.map(([i]) => [i, d.actual[i]]), symbolSize:7, itemStyle:{color:C.risk}},
+    ]};
+  const c = chart('fan'); c.setOption(o, true);
+  c.off('click'); c.getZr().off('click');
+  c.getZr().on('click', e => { const p = c.convertFromPixel({seriesIndex:0}, [e.offsetX, e.offsetY]); if(p && p[0] >= 0 && p[0] < 96){ SEL = Math.round(p[0]); renderExplain(SEL); } });
+}
+
+function renderGate(d){
+  const g = d.gate;
+  $('#g-min').innerHTML = `${g.minutes_left}<small> min</small>`;
+  $('#g-first').textContent = `${g.first_time} (block ${g.first_block + 1})`;
+  $('#g-trig').textContent = g.trigger_pct;
+  const s = g.suggestions;
+  $('#g-list').innerHTML = s.length ? `<div class="h"><span>BLOCK</span><span>CURRENT</span><span>PROPOSED</span><span>Δ AvC</span></div>` +
+    s.map(x => `<div><span>${x.time}</span><span class="blue">${fmt(x.current, MWD)}</span><span class="sun">${fmt(x.proposed, MWD)}</span><span class="${Math.abs(x.dev_pct) > 10 ? 'red' : ''}">${x.dev_pct > 0 ? '+' : ''}${fmt(x.dev_pct, 1)}%</span></div>`).join('')
+    : `<div style="display:block;padding:14px 2px" class="ok">✓ Registered schedule is within the trigger band for every revisable block.</div>`;
+  $('#g-approve').disabled = !s.length;
+  $('#g-approve').textContent = s.length ? `Approve revision · ${s.length} blocks` : 'No revision needed';
+  $('#g-log').innerHTML = d.revisions.length ? d.revisions.map((r, i) => `Rev ${i + 1}: ${r.blocks} blocks ${r.first}–${r.last} <span style="color:#5a606a">${r.at.slice(11, 16)}</span>`).join('<br>') : '';
+}
+async function approve(){
+  const s = DAY.gate.suggestions; if(!s.length) return;
+  const blocks = {}; s.forEach(x => blocks[x.block] = x.proposed);
+  const r = await api('/api/revise', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({plant:plant(), date:date(), blocks, note:'operator 1-click'})});
+  toast(`Revision #${r.revision_no} submitted to SLDC (simulated)`);
+  refresh();
+}
+
+function renderExplain(i){
+  const d = DAY; if(!d) return;
+  $('#x-block').textContent = `block ${i + 1} · ${d.times[i]}`;
+  const ex = d.explain; const rows = Object.entries(ex).map(([k, v]) => [k, v[i] ?? 0]).filter(([k, v]) => Math.abs(v) >= 0.0002 * d.ac_mw || k.startsWith('Clear'));
+  const final = d.q.p50[i] ?? 0;
+  let run = 0; const lo = 0, hi = Math.max(d.ac_mw * 1.05, ...rows.map(r => 0));
+  const pct = x => Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100));
+  const html = rows.map(([k, v]) => { const a = run, b = run + v; run = b; const l = Math.min(a, b), r = Math.max(a, b);
+    const col = k.startsWith('Clear') ? C.sun : v >= 0 ? C.act : C.risk;
+    return `<div class="r"><span class="n" title="${k}">${k}</span><div class="bar"><span style="left:${pct(l)}%;width:${Math.max(.6, pct(r) - pct(l))}%;background:${col}"></span></div><span class="x">${v > 0 && !k.startsWith('Clear') ? '+' : ''}${fmt(v, MWD)}</span></div>`; }).join('');
+  $('#wf').innerHTML = html + `<div class="r tot"><span class="n">P50 forecast</span><div class="bar"><span style="left:0;width:${pct(final)}%;background:linear-gradient(90deg,${C.sun2},${C.sun})"></span></div><span class="x sun">${fmt(final, MWD)}</span></div>` +
+    `<div class="r"><span class="n">Scheduled (S*)</span><div class="bar"><span style="left:0;width:${pct(d.schedule[i] ?? 0)}%;background:${C.sched}"></span></div><span class="x blue">${fmt(d.schedule[i], MWD)}</span></div>` +
+    `<div class="note" style="margin-top:6px">MW contributions. The physics twin sets the level; XGBoost SHAP values show how site-specific learning moved it. ${['Clear sky', 'Broken cloud', 'Overcast'][d.regime[i]]} regime.</div>`;
+}
+
+function renderHealth(d){
+  const h = d.health;
+  const dot = c => `<span class="dot" style="background:${c}"></span>`;
+  const cells = [
+    d.kind === 'pvdaq'
+      ? ['Performance factor', `${fmt(h.soiling_est * 100, 1)}%`, 'measured vs twin at clear noon (soiling, mismatch)', h.soiling_est < 0.9 ? C.amber : C.act]
+      : ['Soiling (est.)', `${fmt(h.soiling_est * 100, 1)}%`, `simulator truth ${fmt(h.soiling_true * 100, 1)}%`, h.soiling_est < 0.95 ? C.amber : C.act],
+    ['Inverters online', `${h.online}/${h.units}`, h.online < h.units ? 'outage: AvC derated' : 'full availability', h.online < h.units ? C.amber : C.act],
+    ['PPC curtailment', h.curtailed_now ? 'ACTIVE' : 'none', `${h.curtailed_blocks} blocks today (DSM-exempt)`, h.curtailed_now ? C.sched : C.act],
+    ['Inverter clipping', `${h.clipping_blocks}`, 'blocks forecast at AC limit', h.clipping_blocks > 0 ? C.amber : C.act],
+    ['WMS sensor QC', h.sensor_flags.length ? `${h.sensor_flags.length} flagged` : d.sensor_log.length ? `${d.sensor_log.length} channel rejected` : 'clean',
+      h.sensor_flags.length ? `${h.sensor_flags[0]}–${h.sensor_flags.at(-1)} imputed from satellite` : d.sensor_log.length ? d.sensor_log[0].split(' rejected')[0].replace(/'/g, '') + ' excluded' : 'clear-sky & frozen-register checks',
+      h.sensor_flags.length || d.sensor_log.length ? C.risk : C.act],
+    ['Cell temp peak', `${fmt(h.t_cell_peak, 1)}°C`, 'Faiman model, forecast', h.t_cell_peak > 60 ? C.amber : C.act],
+    ['ACI interval scale', `×${fmt(h.aci_scale, 2)}`, h.aci_scale > 1 ? 'widened after recent misses' : 'tightened, recent hits', C.sun],
+    ['Kalman bias', `${h.kalman_bias_mw > 0 ? '+' : ''}${fmt(h.kalman_bias_mw, MWD)} MW`, 'live SCADA vs forecast', Math.abs(h.kalman_bias_mw) > 0.05 * d.ac_mw ? C.amber : C.act],
+  ];
+  $('#health').innerHTML = cells.map(([l, v, s, c]) => `<div><div class="l">${dot(c)}${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+}
+
+// ------------------------------------------------------------ radar
+async function loadNowcast(){
+  $('#r-alert').className = 'alert calm'; $('#r-alert').textContent = 'Loading live cloud field…';
+  try{ NC = await api(`/api/nowcast?plant=${plant()}`); }catch(e){ $('#r-alert').textContent = 'Nowcast unavailable (network).'; return; }
+  $('#r-src').textContent = 'issued ' + NC.issued.slice(11, 16) + ' plant local time';
+  $('#r-alert').className = 'alert' + (NC.alert ? '' : ' calm');
+  $('#r-alert').textContent = NC.alert ? '⚠ ' + NC.alert.text : '✓ No cloud bank expected over the plant in the next 2 h';
+  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  $('#r-meta').innerHTML = `Cloud motion <b class="mono sun">${NC.speed_kmh} km/h</b> toward <b class="mono sun">${dirs[Math.round(NC.heading_deg / 45) % 8]}</b> · grid ${NC.lats.length}×${NC.lons.length} @ 0.2° (~${Math.round((NC.lats.length - 1) * 22)} km)<br><span style="color:#5a606a">${NC.source}</span>`;
+  const c = chart('nowc');
+  c.setOption({grid:{left:40, right:10, top:20, bottom:24}, legend:{textStyle:{color:C.dim, fontSize:11}, top:0, right:0, itemHeight:3},
+    tooltip:{trigger:'axis'},
+    xAxis:{type:'category', data:NC.leads_min.map(m => '+' + m), ...AX}, yAxis:{type:'value', min:0, max:100, name:'% cloud', nameTextStyle:{color:C.dim}, ...AX},
+    series:[{name:'Optical-flow CMV', type:'line', data:NC.plant_cmv, symbol:'none', lineStyle:{color:C.sun, width:2.5}},
+            {name:'NWP', type:'line', data:NC.plant_nwp, symbol:'none', lineStyle:{color:C.dim, width:1.5, type:[5, 4]}}]}, true);
+  drawRadar();
+}
+function drawRadar(){
+  if(!NC) return;
+  const k = +$('#r-lead').value; $('#r-leadt').textContent = `+${k * 15} min`;
+  const F = (NCMODE === 'cmv' ? NC.cmv_frames : NC.nwp_frames)[k];
+  const cv = $('#radar'), x = cv.getContext('2d'), W = cv.width, n = F.length, s = W / n;
+  x.fillStyle = '#0a0c0f'; x.fillRect(0, 0, W, W);
+  for(let r = 0; r < n; r++) for(let c = 0; c < n; c++){
+    const v = F[r][c] / 100; // row 0 = south -> draw at bottom
+    x.fillStyle = `rgba(${Math.round(150 + 90 * v)},${Math.round(170 + 70 * v)},${Math.round(200 + 50 * v)},${0.06 + v * 0.75})`;
+    x.fillRect(c * s, W - (r + 1) * s, s + .5, s + .5);
+  }
+  x.strokeStyle = 'rgba(255,255,255,.05)';
+  for(let i = 1; i < 4; i++){ x.beginPath(); x.arc(W / 2, W / 2, i * W / 8, 0, 7); x.stroke(); }
+  if(NCMODE === 'cmv'){
+    const U = NC.vectors.u, V = NC.vectors.v, m = U.length, g = W / m;
+    x.strokeStyle = 'rgba(255,178,26,.85)'; x.fillStyle = 'rgba(255,178,26,.85)'; x.lineWidth = 2;
+    for(let r = 0; r < m; r += 1) for(let c = 0; c < m; c += 1){
+      const u = U[r][c], v = V[r][c], sp = Math.hypot(u, v); if(sp < 0.5) continue;
+      const L = Math.min(g * .8, 6 + sp * 1.2), cx = (c + .5) * g, cy = W - (r + .5) * g, ux = u / sp, uy = -v / sp;
+      x.beginPath(); x.moveTo(cx - ux * L / 2, cy - uy * L / 2); x.lineTo(cx + ux * L / 2, cy + uy * L / 2); x.stroke();
+      x.beginPath(); x.moveTo(cx + ux * L / 2, cy + uy * L / 2); x.lineTo(cx + ux * L / 2 - ux * 7 - uy * 4, cy + uy * L / 2 - uy * 7 + ux * 4); x.lineTo(cx + ux * L / 2 - ux * 7 + uy * 4, cy + uy * L / 2 - uy * 7 - ux * 4); x.fill();
+    }
+  }
+  x.fillStyle = C.sun; x.strokeStyle = '#0a0c0f'; x.lineWidth = 3;
+  x.beginPath(); x.rect(W / 2 - 9, W / 2 - 9, 18, 18); x.stroke(); x.fill();
+  x.fillStyle = C.ink; x.font = '600 22px "IBM Plex Sans Condensed"'; x.fillText(META.plants.find(p => p.id === plant()).name, W / 2 + 16, W / 2 + 7);
+  x.fillStyle = '#5a606a'; x.font = '18px "JetBrains Mono"'; x.fillText('N ↑', 12, 26);
+}
+
+// ------------------------------------------------------------ grid desk
+function renderGrid(){
+  const f = FLEET, A = f.aggregate, n = f.now;
+  $('#f-cap').innerHTML = `${fmt(f.total_ac)}<small>MW</small>`;
+  $('#f-e').innerHTML = `${fmt(f.plants.reduce((a, p) => a + p.energy_mwh, 0))}<small>MWh</small>`;
+  const nowv = n > 0 ? A.actual[n - 1] : null;
+  $('#f-now').innerHTML = `${fmt(nowv)}<small>MW</small>`;
+  $('#f-res').innerHTML = `${fmt(f.max_reserve_mw)}<small>MW</small>`;
+  $('#f-ramp').innerHTML = `${fmt(f.evening_ramp_mw_per_min, 1)}<small>MW/min</small>`;
+  const evs = f.plants.flatMap(p => p.ramps.map(r => ({...r, name:p.name})));
+  $('#f-ev').textContent = evs.length; $('#f-ev').className = 'v ' + (evs.length ? 'red' : 'green');
+  const lo = A.p10.map(v => v ?? 0), w = A.p90.map((v, i) => (v ?? 0) - lo[i]);
+  chart('agg').setOption({grid:{left:52, right:52, top:24, bottom:30}, tooltip:{trigger:'axis'},
+    legend:{textStyle:{color:C.dim, fontSize:11}, top:0, left:0, data:['Fleet P50', 'Actual', 'Reserve need']},
+    xAxis:{type:'category', data:f.times, boundaryGap:false, ...AX, axisLabel:{...AX.axisLabel, interval:7}},
+    yAxis:[{type:'value', name:'MW', ...AX}, {type:'value', name:'reserve', ...AX, splitLine:{show:false}}],
+    series:[{type:'line', data:lo, stack:'b', symbol:'none', lineStyle:{opacity:0}, silent:true},
+      {type:'line', data:w, stack:'b', symbol:'none', lineStyle:{opacity:0}, areaStyle:{color:'rgba(255,178,26,.18)'}, silent:true},
+      {name:'Fleet P50', type:'line', data:A.p50, symbol:'none', lineStyle:{color:C.sun, width:2.5},
+        markLine:{symbol:'none', label:{formatter:'NOW', color:C.sun, position:'insideEndTop'}, lineStyle:{color:C.sun}, data:[{xAxis:f.times[Math.min(n, 95)]}]}},
+      {name:'Actual', type:'line', data:A.actual, symbol:'none', lineStyle:{color:C.act, width:2}},
+      {name:'Reserve need', type:'bar', yAxisIndex:1, data:A.reserve_mw, itemStyle:{color:'rgba(255,77,77,.22)'}, barWidth:'60%'}]}, true);
+  const hours = Array.from({length:15}, (_, i) => i + 5);
+  $('#matrix').style.gridTemplateColumns = `110px repeat(${hours.length}, 1fr)`;
+  $('#matrix').innerHTML = `<div class="c lbl"></div>` + hours.map(h => `<div class="c" style="color:#5a606a">${String(h).padStart(2, '0')}</div>`).join('') +
+    f.plants.map(p => `<div class="c lbl">${p.name}</div>` + hours.map(h => `<div class="c lv${p.hourly_risk[h]}" title="${p.name} ${h}:00"></div>`).join('')).join('');
+  $('#evlist').innerHTML = evs.length ? evs.map(e => `<span class="red mono">▼ ${e.name} ${e.time}</span> drop ≈ ${fmt(e.drop_mw)} MW within 1 h`).join('<br>') : '<span class="ok">✓ No cloud-driven ramp events forecast for the rest of the day.</span>';
+  $('#pcards').innerHTML = f.plants.map(p => `<div class="panel pcard"><h3>${p.name}<span class="tag">${p.state} · ${p.ac_mw} MW</span></h3>
+    <div class="row" style="justify-content:space-between"><div><div class="kpi" style="padding:0"><div class="l">now</div><div class="v green" style="font-size:26px">${fmt(p.now_mw)}<small>MW</small></div></div></div>
+    <div style="text-align:right"><div class="l" style="font-size:10px;letter-spacing:.16em;color:var(--dim)">P50 ENERGY</div><div class="mono sun" style="font-size:18px">${fmt(p.energy_mwh)} MWh</div></div></div>
+    <div class="spark" id="sp-${p.id}"></div><div class="ramp">${p.ramps.map(r => '▼ ' + r.time + ' −' + fmt(r.drop_mw) + ' MW').join('  ')}</div></div>`).join('');
+  f.plants.forEach(p => {
+    const el = document.getElementById('sp-' + p.id); delete charts['sp-' + p.id];
+    const lo = p.p10.map(v => v ?? 0);
+    chart('sp-' + p.id).setOption({grid:{left:0, right:0, top:4, bottom:0}, xAxis:{type:'category', show:false, data:f.times, boundaryGap:false}, yAxis:{show:false, max:p.ac_mw},
+      series:[{type:'line', data:lo, stack:'a', symbol:'none', lineStyle:{opacity:0}}, {type:'line', data:p.p90.map((v, i) => (v ?? 0) - lo[i]), stack:'a', symbol:'none', lineStyle:{opacity:0}, areaStyle:{color:'rgba(255,178,26,.18)'}},
+        {type:'line', data:p.p50, symbol:'none', lineStyle:{color:C.sun, width:1.5}}, {type:'line', data:p.actual, symbol:'none', lineStyle:{color:C.act, width:1.8}}]});
+  });
+}
+
+// ------------------------------------------------------------ validation
+let METRICS = null, GRP = 'real';
+async function loadMetrics(){
+  METRICS = await api('/api/metrics');
+  document.querySelectorAll('#grp button').forEach(b => b.onclick = () => { GRP = b.dataset.g;
+    document.querySelectorAll('#grp button').forEach(x => x.classList.toggle('on', x === b)); renderMetrics(); });
+  renderMetrics();
+  loadIndia();
+}
+function renderMetrics(){
+  const all = METRICS, m = all[GRP], name = id => META.plants.find(p => p.id === id)?.name || id;
+  $('#v-split').textContent = Object.entries(m.windows).map(([id, w]) => `${name(id)}: test ${w[0]} → ${w[1]}`).join(' · ') + ` · ${m.test_days} held-out plant-days`;
+  const det = Object.entries(m.deterministic);
+  const best = det.reduce((a, b) => a[1].nRMSE < b[1].nRMSE ? a : b)[0];
+  $('#t-det').innerHTML = `<tr><th>Model</th><th>nMAE</th><th>nRMSE</th><th>Bias</th><th>Skill</th></tr>` + det.map(([k, v]) =>
+    `<tr class="${k === best ? 'best' : ''}"><td>${k}</td><td>${fmt(v.nMAE, 2)}%</td><td>${fmt(v.nRMSE, 2)}%</td><td>${fmt(v.bias, 2)}%</td><td>${v.skill_vs_persistence > 0 ? '+' : ''}${fmt(v.skill_vs_persistence, 1)}%</td></tr>`).join('') +
+    Object.entries(m.per_plant).map(([id, v]) => `<tr><td style="color:var(--dim)">↳ ${name(id)}</td><td colspan="4" style="color:var(--dim)">P50 nMAE ${fmt(v.nMAE_P50, 2)}% · twin ${fmt(v.nMAE_twin, 2)}%</td></tr>`).join('');
+  chart('c-det').setOption({grid:{left:200, right:40, top:10, bottom:20}, xAxis:{type:'value', ...AX, name:'nRMSE %'}, yAxis:{type:'category', data:det.map(d => d[0]), ...AX, axisLabel:{color:C.dim, fontSize:11}},
+    series:[{type:'bar', data:det.map(([k, v]) => ({value:+v.nRMSE.toFixed(2), itemStyle:{color:k === best ? C.sun : '#3a404a'}})), label:{show:true, position:'right', color:C.ink, fontFamily:'JetBrains Mono', fontSize:11}, barWidth:16}]}, true);
+  const leads = Object.keys(m.intraday), models = ['Smart persistence', 'Hybrid (no SCADA feedback)', 'Hybrid + Kalman', 'Horizon-adaptive blend'];
+  const cols = ['#6b7280', '#5aa9ff', '#ff7a1a', '#ffb21a'];
+  chart('c-intra').setOption({grid:{left:44, right:16, top:34, bottom:28}, tooltip:{trigger:'axis'}, legend:{textStyle:{color:C.dim, fontSize:11}, top:0},
+    xAxis:{type:'category', data:leads, ...AX}, yAxis:{type:'value', ...AX},
+    series:models.map((k, i) => ({name:k, type:'line', data:leads.map(l => +m.intraday[l][k].nRMSE.toFixed(2)), symbolSize:7, lineStyle:{color:cols[i], width:i === 3 ? 3 : 1.6}, itemStyle:{color:cols[i]}}))}, true);
+  const P = m.probabilistic, bands = ['PICP 50%', 'PICP 80%', 'PICP 90%'];
+  chart('c-cal').setOption({grid:{left:44, right:16, top:34, bottom:28}, tooltip:{trigger:'axis'}, legend:{textStyle:{color:C.dim, fontSize:11}, top:0},
+    xAxis:{type:'category', data:bands.map(b => b.replace('PICP ', '') + ' band'), ...AX}, yAxis:{type:'value', min:40, max:100, ...AX},
+    series:[{name:'Nominal', type:'bar', data:bands.map(b => P[b].nominal), itemStyle:{color:'#3a404a'}, barGap:'10%'},
+      {name:'Empirical (CQR + ACI)', type:'bar', data:bands.map(b => +P[b].empirical.toFixed(1)), itemStyle:{color:C.sun}, label:{show:true, position:'top', color:C.ink, fontSize:11}}]}, true);
+  $('#n-cal').innerHTML = `Static CQR alone covered <b class="mono">${fmt(P['Static CQR 80% (no online adaptation)'], 1)}%</b> in the 80% band, because the calibration season differs from the test season. Online ACI brought it to <b class="mono sun">${fmt(P['PICP 80%'].empirical, 1)}%</b>. Mean pinball loss ${fmt(P.mean_pinball, 2)}% · mean 80% width ${fmt(P['PICP 80%'].mean_width, 1)}% of capacity.`;
+  const D = Object.entries(m.dsm), twinPen = m.dsm['Schedule = physics twin'].penalty_inr, p50Pen = m.dsm['Schedule = P50'].penalty_inr, sPen = m.dsm['Schedule = S* (optimized)'].penalty_inr;
+  $('#t-dsm').innerHTML = `<tr><th>Scheduling policy</th><th>DSM charges</th><th>±10% compliance</th></tr>` + D.map(([k, v], i) =>
+    `<tr class="${i === 2 ? 'best' : ''}"><td>${k}</td><td>${inr(v.penalty_inr)}</td><td>${fmt(v.band_compliance_pct, 1)}%</td></tr>`).join('') +
+    `<tr><td colspan="3" style="text-align:left;font-family:var(--body);color:var(--dim)">S* vs physics-only schedule: <b class="sun">${fmt((1 - sPen / twinPen) * 100, 1)}%</b> lower charges; vs submitting P50: ${fmt((1 - sPen / p50Pen) * 100, 1)}%. Under-injection is charged 1.5×, so S* bids the P40 (critical fractile).${GRP === 'real' ? ' US plants are settled here under the same simplified CERC-style slabs, at ₹2.60/kWh, as if they were scheduled in India.' : ''}</td></tr>`;
+  chart('c-dsm').setOption({grid:{left:180, right:60, top:10, bottom:20}, xAxis:{type:'value', ...AX, axisLabel:{...AX.axisLabel, formatter:v => inr(v)}}, yAxis:{type:'category', data:D.map(d => d[0].replace('Schedule = ', '')), ...AX, axisLabel:{color:C.dim, fontSize:11}},
+    series:[{type:'bar', data:D.map(([k, v], i) => ({value:Math.round(v.penalty_inr), itemStyle:{color:i === 2 ? C.sun : '#3a404a'}})), label:{show:true, position:'right', color:C.ink, fontSize:11, formatter:p => inr(p.value)}, barWidth:16}]}, true);
+  const S = m.sanitization;
+  if(GRP === 'sim'){
+    $('#t-san').innerHTML = `<tr><th>Check</th><th>Value</th></tr>
+      <tr><td>Curtailed blocks in test window</td><td>${S.curtailed_blocks}</td></tr>
+      <tr class="best"><td>De-curtailed reconstruction error</td><td>${fmt(S.decurtail_error_pct, 2)}% of cap.</td></tr>
+      <tr><td>…if raw SCADA were used instead</td><td class="red">${fmt(S.raw_scada_error_pct, 2)}% of cap.</td></tr>
+      <tr><td>Soiling estimate MAE</td><td>${fmt(S.soiling_est_mae_pct, 2)} pts</td></tr>
+      <tr><td>WMS sensor blocks flagged &amp; imputed</td><td>${S.sensor_blocks_flagged}</td></tr>`;
+    $('#n-san').textContent = 'Measured against hidden ground truth in the simulator: what the plant could have produced during grid-ordered curtailment, and the true soiling level.';
+  } else {
+    const L = all.sensor_log;
+    $('#t-san').innerHTML = `<tr><th>Check on real telemetry</th><th>Result</th></tr>` + ['srco', 'fsa'].map(id => { const x = L[id] || {};
+      return `<tr><td>${name(id)}: days usable</td><td>${x.days_kept} / ${x.days_total}</td></tr>
+        <tr><td>${name(id)}: meter ↔ pyranometer time alignment</td><td>${x.lag_min >= 0 ? '+' : ''}${x.lag_min} min (r = ${x.lag_corr})</td></tr>` +
+        (x.sensor_log || []).map(t => `<tr><td colspan="2" style="text-align:left;font-family:var(--body);color:var(--risk)">✗ ${t}</td></tr>`).join(''); }).join('') +
+      `<tr><td>Inverter-derated blocks (AvC corrected)</td><td>${S.derated_blocks}</td></tr><tr><td>WMS blocks flagged &amp; imputed</td><td>${S.sensor_blocks_flagged}</td></tr>`;
+    $('#n-san').textContent = 'SR_CO revenue meter was also excluded: it reads up to 16 MW on a 3.8 MW plant from Aug 2024 (r = 0.49 vs inverters); plant output is the sum of its 8 inverter modules instead.';
+  }
+  const G = Object.entries(all.feature_gain[GRP] || {}).slice(0, 10).reverse();
+  chart('c-gain').setOption({grid:{left:110, right:30, top:10, bottom:20}, xAxis:{type:'value', ...AX}, yAxis:{type:'category', data:G.map(g => g[0]), ...AX, axisLabel:{color:C.dim, fontFamily:'JetBrains Mono', fontSize:11}},
+    series:[{type:'bar', data:G.map(g => +g[1].toFixed(2)), itemStyle:{color:C.sun2}, barWidth:12}]}, true);
+  $('#honesty').innerHTML = `<b style="color:var(--ink)">About the data.</b> <b>Real:</b> archived ECMWF IFS, GFS and ICON forecasts (Open-Meteo) for every plant. Two US plants have real telemetry from NREL PVDAQ (SR_CO, Kersey CO; Farm Solar Array, Arbuckle CA): inverter or revenue-meter power, plane-of-array pyranometers and module/ambient temperatures, 2024–2025. Two Indian plants have real inverter and sensor data from Kaggle (May–June 2020); no forecast archive exists for 2020, so they validate the twin and QC layers, not forecasting. <b>Simulated:</b> SCADA for the four Indian fleet plants (Bhadla, Charanka, Pavagada, Kamuthi), generated from ERA5 with hidden soiling, outages, curtailment and sensor faults. Real and simulated plants use separate models. All scores are on held-out days after each plant's training and calibration windows. Built ${all.built_at}.`;
+}
+
+async function loadIndia(){
+  let r; try { r = await api('/api/india'); } catch(e){ $('#india').innerHTML = '<div class="panel note">Kaggle India data not available.</div>'; return; }
+  $('#in-src').textContent = r.source;
+  $('#india').innerHTML = r.plants.map((p, i) => `
+    <div class="grid" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);margin-bottom:14px">
+      <div class="panel"><h3>${p.plant} · ID ${p.plant_id} <span class="tag">${p.period.join(' → ')} · ${p.inverters} inverters</span></h3>
+        <div class="kpis" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:10px">
+          <div class="kpi" style="padding:0"><div class="l">AC capacity (est.)</div><div class="v" style="font-size:28px">${fmt(p.ac_capacity_mw_est, 1)}<small>MW</small></div><div class="s">DC fit ${fmt(p.dc_capacity_mw_fit, 1)} MW</div></div>
+          <div class="kpi" style="padding:0"><div class="l">Twin fit (held-out)</div><div class="v sun" style="font-size:28px">R² ${fmt(p.twin.R2, 2)}</div><div class="s">nMAE ${fmt(p.twin.nMAE_pct, 1)}% · ${p.twin.val_days} days</div></div>
+          <div class="kpi" style="padding:0"><div class="l">Lost to outages</div><div class="v red" style="font-size:28px">${fmt(p.lost_mwh_outages, 0)}<small>MWh</small></div><div class="s">of ${fmt(p.energy_mwh, 0)} MWh delivered</div></div>
+          <div class="kpi" style="padding:0"><div class="l">Location (inferred)</div><div class="v" style="font-size:22px">${fmt(p.location.lat, 1)}°N ${fmt(p.location.lon, 1)}°E</div><div class="s">${p.location.era5_check ? `ERA5 daily r = ${p.location.era5_check.daily_corr}` : ''} · ±${p.location.lon_spread_deg}° lon</div></div>
+        </div>
+        <ul class="issues">${p.issues.map(x => `<li class="${x.sev}">${x.text}</li>`).join('')}</ul>
+        <div id="in-day-${i}" style="height:220px;margin-top:10px"></div>
+        <div class="note">Showcase day ${p.showcase.date}: availability-corrected plant output vs the digital twin calibrated on the first half of the data. Driven only by the plant's own irradiance and module-temperature sensors.</div>
+      </div>
+      <div class="panel"><h3>Inverter health <span class="tag">output vs fleet median while sunny</span></h3>
+        <table><tr><th>Inverter</th><th>Rel. output</th><th>Trips</th><th>Gaps</th><th>Status</th></tr>
+        ${p.inverters_table.slice(0, 10).map(v => `<tr><td class="mono">…${v.id}</td><td>${fmt(v.rel_output * 100, 1)}%</td><td>${fmt(v.trip_pct, 1)}%</td><td>${fmt(v.gap_pct, 1)}%</td><td><span class="st ${v.status}">${v.status}</span></td></tr>`).join('')}</table>
+        <div id="in-daily-${i}" style="height:190px;margin-top:12px"></div>
+      </div>
+    </div>`).join('');
+  r.plants.forEach((p, i) => {
+    delete charts['in-day-' + i]; delete charts['in-daily-' + i];
+    chart('in-day-' + i).setOption({grid:{left:44, right:44, top:24, bottom:24}, tooltip:{trigger:'axis'}, legend:{textStyle:{color:C.dim, fontSize:11}, top:0, left:0},
+      xAxis:{type:'category', data:p.showcase.times, ...AX, axisLabel:{...AX.axisLabel, interval:11}}, yAxis:[{type:'value', name:'MW', ...AX}, {type:'value', name:'W/m²', ...AX, splitLine:{show:false}}],
+      series:[{name:'Irradiance', type:'line', yAxisIndex:1, data:p.showcase.irr, symbol:'none', lineStyle:{color:'#3a404a'}, areaStyle:{color:'rgba(255,255,255,.04)'}},
+        {name:'Actual (AvC-corrected)', type:'line', data:p.showcase.actual, symbol:'none', lineStyle:{color:C.act, width:2}},
+        {name:'Digital twin', type:'line', data:p.showcase.twin, symbol:'none', lineStyle:{color:C.sun, width:2, type:[6, 4]}}]});
+    chart('in-daily-' + i).setOption({grid:{left:44, right:10, top:24, bottom:24}, tooltip:{trigger:'axis'}, legend:{textStyle:{color:C.dim, fontSize:11}, top:0, left:0},
+      xAxis:{type:'category', data:p.daily.date.map(d => d.slice(5)), ...AX}, yAxis:{type:'value', name:'MWh', ...AX},
+      series:[{name:'Delivered', type:'bar', data:p.daily.actual, itemStyle:{color:'rgba(79,209,139,.55)'}},
+        {name:'If all inverters online', type:'bar', data:p.daily.full, barGap:'-100%', itemStyle:{color:'rgba(255,77,77,.25)'}, z:1},
+        {name:'Twin', type:'line', data:p.daily.twin, symbol:'none', lineStyle:{color:C.sun, width:1.5}}]});
+  });
+}
+
+boot().catch(e => { document.querySelector('main').innerHTML = `<div class="err">Failed to load: ${e.message}</div>`; });
+</script>
+</body>
+</html>
