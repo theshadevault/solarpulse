@@ -23,6 +23,11 @@ python kaggle_india.py    # re-run the Indian plant analysis only
 All data is public and downloaded automatically without login (OEDI S3, Kaggle public download, Open-Meteo).
 Real and simulated plants use separate models. Live mode for the US plants is forecast-only, because no live telemetry is public.
 
+### Sources
+- NREL PVDAQ 2023 Solar Data Prize (OEDI): https://data.openei.org/submissions/4568 · files: https://oedi-data-lake.s3.amazonaws.com/pvdaq/2023-solar-data-prize/ (systems `9068_OEDI`, `2107_OEDI`)
+- Kaggle, Solar Power Generation Data: https://www.kaggle.com/datasets/anikannal/solar-power-generation-data
+- Open-Meteo (CC BY 4.0): [Historical Forecast API](https://open-meteo.com/en/docs/historical-forecast-api) (archived ECMWF IFS, GFS, ICON) · [Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) (ERA5) · [Forecast API](https://open-meteo.com/en/docs) (live forecasts, cloud grid)
+
 ## Data problems found by the QC layer
 - SR_CO revenue meter reads up to 16 MW on a 3.8 MW plant from Aug 2024 (r = 0.49 vs inverters) → plant output uses the inverter sum instead.
 - SR_CO thermocouple pad 2 #1 stuck at 3276.7 °C (disconnected sensor) → rejected automatically.
